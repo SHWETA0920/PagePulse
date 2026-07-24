@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Page Pulse — URL Audit Tool</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --card: #171a21;
+    --border: #2a2e37;
+    --text: #e8e9ec;
+    --muted: #9aa0ab;
+    --accent: #5b8cff;
+    --good: #33c481;
+    --bad: #ff5d5d;
+    --warn: #ffb454;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+  }
+  main { flex: 1; padding: 48px 20px; }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 28px; margin-bottom: 4px; }
+  .sub { color: var(--muted); margin-bottom: 28px; font-size: 14px; }
+  form { display: flex; gap: 10px; }
+  input[type="text"] {
+    flex: 1; padding: 14px 16px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--card);
+    color: var(--text); font-size: 15px; outline: none;
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+  button {
+    padding: 14px 24px; border-radius: 8px; border: none;
+    background: var(--accent); color: white; font-size: 15px;
+    font-weight: 600; cursor: pointer;
+  }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  #status { margin-top: 16px; font-size: 14px; color: var(--muted); min-height: 20px; }
+  #status.error { color: var(--bad); }
+  .card {
+    margin-top: 24px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; display: none;
+  }
+  .card.visible { display: block; }
+  .grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;
+  }
+  .metric {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px;
+  }
+  .metric .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .metric .value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+  .metric .value.good { color: var(--good); }
+  .metric .value.warn { color: var(--warn); }
+  .metric .value.bad { color: var(--bad); }
+  .field-row { margin-top: 16px; }
+  .field-row .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .field-row .value { margin-top: 4px; font-size: 15px; word-break: break-word; }
+  footer {
+    text-align: center; padding: 20px; font-size: 13px; color: var(--muted);
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+  <main>
+    <div class="wrap">
+      <h1>🩺 Page Pulse</h1>
+      <p class="sub">Paste any URL to get an instant health &amp; SEO audit.</p>
+
+      <form id="audit-form">
+        <input type="text" id="url-input" placeholder="https://example.com" autocomplete="off" required />
+        <button type="submit" id="submit-btn">Audit</button>
+      </form>
+      <div id="status"></div>
+
+      <div class="card" id="result-card">
+        <div class="field-row">
+          <div class="label">URL</div>
+          <div class="value" id="r-url">—</div>
+        </div>
+
+        <div class="grid">
+          <div class="metric">
+            <div class="label">HTTP Status</div>
+            <div class="value" id="r-status">—</div>
+          </div>
+          <div class="metric">
+            <div class="label">Response Time</div>
+            <div class="value" id="r-time">—</div>
+          </div>
+          <div class="metric">
+            <div class="label">H1 Count</div>
+            <div class="value" id="r-h1">—</div>
+          </div>
+          <div class="metric">
+            <div class="label">Word Count</div>
+            <div class="value" id="r-words">—</div>
+          </div>
+          <div class="metric">
+            <div class="label">Images (total)</div>
+            <div class="value" id="r-images">—</div>
+          </div>
+          <div class="metric">
+            <div class="label">Images Missing Alt</div>
+            <div class="value" id="r-alt">—</div>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="label">Title</div>
+          <div class="value" id="r-title">—</div>
+        </div>
+        <div class="field-row">
+          <div class="label">Meta Description</div>
+          <div class="value" id="r-meta">—</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Built for
+    <a href="https://digitalheroesco.com" target="_blank" rel="noopener noreferrer">Digital Heroes Training Task</a>
+  </footer>
+
+  <script>
+    const form = document.getElementById('audit-form');
+    const urlInput = document.getElementById('url-input');
+    const submitBtn = document.getElementById('submit-btn');
+    const statusEl = document.getElementById('status');
+    const card = document.getElementById('result-card');
+
+    function setStatus(msg, isError) {
+      statusEl.textContent = msg || '';
+      statusEl.className = isError ? 'error' : '';
+    }
+
+    function tone(value, goodMax, warnMax) {
+      if (value <= goodMax) return 'good';
+      if (value <= warnMax) return 'warn';
+      return 'bad';
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const url = urlInput.value.trim();
+      if (!url) return;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Auditing…';
+      setStatus('Fetching and analyzing the page…');
+      card.classList.remove('visible');
+
+      try {
+        const res = await fetch('/api/audit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          setStatus(data?.error?.message || 'Something went wrong.', true);
+          return;
+        }
+
+        setStatus('');
+        document.getElementById('r-url').textContent = data.url;
+        document.getElementById('r-status').textContent = data.httpStatus;
+        document.getElementById('r-status').className =
+          'value ' + tone(data.httpStatus >= 400 ? 999 : 0, 0, 0.5);
+        document.getElementById('r-time').textContent = data.responseTimeMs + ' ms';
+        document.getElementById('r-time').className = 'value ' + tone(data.responseTimeMs, 800, 2000);
+        document.getElementById('r-h1').textContent = data.h1Count;
+        document.getElementById('r-h1').className = 'value ' + (data.h1Count === 1 ? 'good' : 'warn');
+        document.getElementById('r-words').textContent = data.wordCount.toLocaleString();
+        document.getElementById('r-images').textContent = data.imageCount;
+        document.getElementById('r-alt').textContent = data.imagesMissingAlt;
+        document.getElementById('r-alt').className =
+          'value ' + (data.imagesMissingAlt === 0 ? 'good' : 'bad');
+        document.getElementById('r-title').textContent = data.title || '(none found)';
+        document.getElementById('r-meta').textContent = data.metaDescription || '(none found)';
+
+        card.classList.add('visible');
+      } catch (err) {
+        setStatus('Network error talking to the audit service.', true);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Audit';
+      }
+    });
+  </script>
+</body>
+</html>
