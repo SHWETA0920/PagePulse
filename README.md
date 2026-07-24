@@ -3,7 +3,7 @@
 A small tool that audits any URL: HTTP status, response time, page title, meta
 description, H1 count, images missing `alt` text, and approximate word count.
 
-Live demo: **[ADD YOUR DEPLOYED URL HERE]**
+Live demo: https://pagepulse-uz2d.onrender.com/
 
 ---
 
