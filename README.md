@@ -3,7 +3,26 @@
 A small tool that audits any URL: HTTP status, response time, page title, meta
 description, H1 count, images missing `alt` text, and approximate word count.
 
-Live demo: https://pagepulse-uz2d.onrender.com/
+Live demo: **https://pagepulse-uz2d.onrender.com/**
+
+This tool helps developers quickly identify SEO and accessibility issues
+without needing heavyweight tools like Lighthouse.
+
+## Screenshots
+
+<img width="1568" height="687" alt="image" src="https://github.com/user-attachments/assets/55be5dc9-ba74-4f1e-8f69-175fbf354f28" />
+
+
+## Tech Stack
+
+| Layer      | Choice                          | Why |
+|------------|----------------------------------|-----|
+| Runtime    | Node.js 18+ / Express            | Minimal, fast to stand up a small JSON API, no framework overhead for a single-endpoint tool |
+| HTTP client| Axios                            | Configurable timeouts, redirect handling, and `validateStatus` control needed to treat 4xx pages as valid audits rather than errors |
+| HTML parsing | Cheerio                        | Server-side jQuery-like DOM parsing — fast, no headless browser needed for static HTML |
+| Frontend   | Vanilla HTML/CSS/JS              | No build step, no bundler — keeps the whole project runnable with just `npm install && npm start` |
+| Testing    | Jest                             | Fast unit tests with easy `axios` mocking, no network calls needed in CI |
+| Hosting    | Render (free tier)               | Runs a persistent Node process (unlike static hosts such as Netlify/Vercel's default tier), which this app needs since it's a real Express server, not serverless functions |
 
 ---
 
